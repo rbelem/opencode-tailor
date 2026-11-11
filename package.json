@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "opencode-tailor",
+  "version": "0.1.0",
+  "description": "OpenCode plugin that tailors a project's opencode.jsonc and agent set: one job per agent, explicit anti-jobs, verification, no leftover tools.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "bun test --pass-with-no-tests",
+    "typecheck": "tsc --noEmit",
+    "check": "bun run typecheck && bun run test",
+    "smoke": "bun -e \"import('./src/index.ts').then((m) => { if (!m.default?.id || typeof m.default.setup !== 'function') throw new Error('missing V2 plugin export') })\"",
+    "prepack": "bun run check && bun run smoke"
+  },
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "agents",
+    "configuration",
+    "scaffold",
+    "tailor",
+    "agent-builder"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@opencode/plugin": "^2.2.6"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "bun-types": "^1.3.0",
+    "typescript": "^5.9.0"
+  }
+}
