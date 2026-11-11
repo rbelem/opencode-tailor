@@ -150,9 +150,11 @@ async function runtimeAgentCheck(agentRuntime: AgentRuntime, plan: Plan): Promis
     const result = await agentRuntime.list();
     const list = Array.isArray(result)
       ? result
-      : Array.isArray((result as { agents?: unknown[] })?.agents)
-        ? (result as { agents: unknown[] }).agents
-        : [];
+      : Array.isArray((result as { data?: unknown[] } | null)?.data)
+        ? (result as { data: unknown[] }).data
+        : Array.isArray((result as { agents?: unknown[] } | null)?.agents)
+          ? (result as { agents: unknown[] }).agents
+          : [];
     const ids = new Set(list.map((item) => String((item as { id?: unknown })?.id)));
     const missing = expected.filter((id) => !ids.has(id));
     return {

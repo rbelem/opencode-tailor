@@ -134,4 +134,49 @@ describe("plugin wiring", () => {
     expect(prompts[0]).toContain("posture=cautious");
     expect(prompts[0]).toContain("dry run only");
   });
+
+  test("apply verifies generated agents against the { data: [...] } agent list envelope", async () => {
+    const root = await project({
+      "package.json": JSON.stringify({ name: "demo", scripts: { test: "vitest" } }),
+    });
+
+    const runApply = async (agentList: unknown) => {
+      const tools: Array<{ name: string; execute: (input: unknown) => Promise<{ content: string }> }> = [];
+      const registration = { dispose: async () => {} };
+      const fake = {
+        location: { directory: root },
+        agent: {
+          reload: async () => {},
+          list: async () => agentList,
+        },
+        session: { prompt: async () => ({}) },
+        tool: {
+          transform: async (cb: (editor: { namespace: () => void; add: (tool: (typeof tools)[number]) => void }) => void) => {
+            cb({ namespace: () => {}, add: (tool) => tools.push(tool) });
+            return registration;
+          },
+        },
+        command: { transform: async () => registration },
+        skill: { transform: async () => registration },
+      };
+      const cleanup = await plugin.setup(fake as never);
+      const apply = tools.find((tool) => tool.name === "apply")!;
+      const result = await apply.execute({ breadth: "lean" });
+      await cleanup?.();
+      return JSON.parse(result.content) as { checks: Array<{ name: string; ok: boolean; detail: string }> };
+    };
+
+    const envelope = {
+      location: { directory: root },
+      data: [{ id: "verifier" }, { id: "reviewer" }],
+    };
+    const okReport = await runApply(envelope);
+    const okCheck = okReport.checks.find((check) => check.name === "runtime-agents");
+    expect(okCheck?.ok).toBe(true);
+
+    const missingReport = await runApply({ data: [{ id: "verifier" }] });
+    const missingCheck = missingReport.checks.find((check) => check.name === "runtime-agents");
+    expect(missingCheck?.ok).toBe(false);
+    expect(missingCheck?.detail).toContain("reviewer");
+  });
 });
